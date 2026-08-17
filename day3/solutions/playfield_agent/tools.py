@@ -1,11 +1,4 @@
-"""Playfield analyst tools — Day 3 scaffold.
-
-Everything you finished last session is here already (search_reviews,
-analyze_review, catalog tools). Today's additions, in walkthrough order:
-
-- Part 1: track_game / list_tracked_games  → session STATE (the agent's memory)
-- Part 2: get_sales_data                   → a tool that fails, on purpose
-"""
+"""Playfield analyst tools — Day 3 SOLUTION."""
 
 import functools
 import time
@@ -25,7 +18,7 @@ EMBED_MODEL = "gemini-embedding-001"
 
 
 # --------------------------------------------------------------------------
-# Plumbing (unchanged from Day 2)
+# Plumbing
 # --------------------------------------------------------------------------
 
 def repo_root() -> Path:
@@ -83,12 +76,8 @@ def _review_vectors() -> np.ndarray:
 
 
 # --------------------------------------------------------------------------
-# Part 1 — memory tools (TODO)
+# Memory tools (session state)
 # --------------------------------------------------------------------------
-# The session's `state` is a dict that survives the conversation. Keys with the
-# "user:" prefix stick to the USER — they survive across sessions too.
-# A tool gets access by declaring a `tool_context: ToolContext` parameter;
-# ADK injects it and the model never sees it.
 
 def track_game(game_id: str, tool_context: ToolContext) -> dict:
     """Adds a game to the user's tracked-games watchlist.
@@ -101,14 +90,6 @@ def track_game(game_id: str, tool_context: ToolContext) -> dict:
     Returns:
         dict: status and the updated watchlist (list of game ids).
     """
-    # TODO(you): Part 1, step 1.2
-    #   1. validate game_id against _games() — status "error" if unknown
-    #   2. watchlist = tool_context.state.get("user:tracked_games", [])
-    #   3. append if missing, then WRITE IT BACK:
-    #      tool_context.state["user:tracked_games"] = watchlist
-    #      (assignment is what records the change — mutating a nested list
-    #       without reassigning it may not be persisted)
-    #   4. return {"status": "success", "tracked_games": watchlist}
     if _games()[_games()["game_id"] == game_id].empty:
         return {
             "status": "error",
@@ -117,6 +98,7 @@ def track_game(game_id: str, tool_context: ToolContext) -> dict:
     watchlist = list(tool_context.state.get("user:tracked_games", []))
     if game_id not in watchlist:
         watchlist.append(game_id)
+    # Assignment (not in-place mutation) is what records the state change.
     tool_context.state["user:tracked_games"] = watchlist
     return {"status": "success", "tracked_games": watchlist}
 
@@ -130,20 +112,18 @@ def list_tracked_games(tool_context: ToolContext) -> dict:
     Returns:
         dict: status and a list of {game_id, title} entries.
     """
-    # TODO(you): Part 1, step 1.2 — read "user:tracked_games" from state,
-    # map ids to titles via _games(), return them.
-    watchlist = list(tool_context.state.get("user:tracked_games", []))
-    titles = _games().set_index("game_id")["title"].to_dict()
+    watchlist = tool_context.state.get("user:tracked_games", [])
+    games = _games().set_index("game_id")["title"]
     return {
         "status": "success",
         "tracked_games": [
-            {"game_id": gid, "title": titles.get(gid, "unknown")} for gid in watchlist
+            {"game_id": gid, "title": games.get(gid, "?")} for gid in watchlist
         ],
     }
 
 
 # --------------------------------------------------------------------------
-# Part 2 — a tool that fails (leave it broken for step 2.1!)
+# The (formerly) failing tool — fixed: structured error instead of a raise
 # --------------------------------------------------------------------------
 
 def get_sales_data(game_id: str) -> dict:
@@ -155,11 +135,6 @@ def get_sales_data(game_id: str) -> dict:
     Returns:
         dict: status, units_sold and revenue_eur.
     """
-    # Step 2.1: run it broken, watch what the agent does with a raw exception.
-    # Step 2.2: replace the raise with a structured error return:
-    #   {"status": "error",
-    #    "message": "The sales database is offline. Review statistics from "
-    #               "get_game_details are still available."}
     return {
         "status": "error",
         "message": (
@@ -170,7 +145,7 @@ def get_sales_data(game_id: str) -> dict:
 
 
 # --------------------------------------------------------------------------
-# Catalog + Day-1 power tools (finished — Day 2 state)
+# Catalog + Day-1 power tools
 # --------------------------------------------------------------------------
 
 def list_games() -> dict:

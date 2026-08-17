@@ -1,6 +1,6 @@
 # Day 3 · Memory, state & real tools
 
-Yesterday's agent forgot everything between sessions and couldn't see the docs.
+Last session's agent forgot everything between sessions and couldn't see the docs.
 Today: **session state** (a real watchlist that survives), **tool-failure
 design**, the full **tool taxonomy** (custom, built-in `google_search`, and an
 **MCP** server demo), a **RAG tool** over the patch-notes corpus, and

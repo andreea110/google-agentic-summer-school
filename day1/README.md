@@ -6,7 +6,7 @@ storefront: 20 games, 300 player reviews, and studios that keep asking
 answers them. Today, you learn to do its job by hand.
 
 **Outcome:** a working semantic-search and structured-extraction pipeline over the
-review corpus — you, doing manually what your agent will do by Friday.
+review corpus — you, doing manually what your agent will do by Day 5.
 
 ## Before you start
 
@@ -20,7 +20,7 @@ Complete the [setup in the root README](../README.md): venv and
    (`GOOGLE_API_KEY=AIza…`).
 4. Run the smoke test from the root README — it should print "Ready.".
 
-The free tier is all Days 1–3 need. On Thursday you'll receive Google-provided
+The free tier is all Days 1–3 need. On Day 4 you'll receive Google-provided
 keys for Days 4–5 and simply replace the value in `.env`. Then:
 
 ```bash
@@ -52,5 +52,5 @@ jupyter lab day1/
 
 ## Keep your work
 
-Tomorrow your `search()` and `analyze()` functions become **agent tools** —
+Next session your `search()` and `analyze()` functions become **agent tools** —
 the model will call them on its own. Don't delete anything.
