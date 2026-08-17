@@ -48,7 +48,39 @@ def refund_guardrail(
     #              role="model",
     #              parts=[types.Part(text=POLICY_ANSWER)]))
     #   3. otherwise return None (allow the model call)
-    raise NotImplementedError("Part 4, step 4.2")
+    last_user_text = ""
+    for content in reversed(llm_request.contents):
+        if content.role == "user" and content.parts:
+            texts = [p.text for p in content.parts if p.text]
+            if texts:
+                last_user_text = " ".join(texts)
+                break
+
+    lowered = last_user_text.lower()
+    if any(word in lowered for word in REFUND_WORDS):
+        callback_context.state["temp:refund_blocked"] = True
+        return LlmResponse(
+            content=types.Content(role="model", parts=[types.Part(text=POLICY_ANSWER)])
+        )
+    return None
+
+def record_docs(
+    tool: BaseTool, args: dict[str, Any], tool_context: ToolContext, tool_response: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Records which doc files search_docs actually returned, in temp:sources.
+
+    Citations built from state are facts about what the agent read; citations
+    the model writes from memory are a promise it may not keep.
+    """
+    if tool.name != "search_docs" or tool_response.get("status") != "success":
+        return None  # not our tool — leave the response untouched
+
+    sources = list(tool_context.state.get("temp:sources", []))
+    for hit in tool_response.get("hits", []):
+        if hit["file"] not in sources:
+            sources.append(hit["file"])
+    tool_context.state["temp:sources"] = sources
+    return None  # None = keep the tool's own response
 
 
 REFUND_WORDS = ["refund", "money back", "chargeback", "rambursare"]

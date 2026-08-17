@@ -21,6 +21,7 @@ reviews yourself; by Day 5 a multi-agent system you built does it for you.
 
 You need **Python 3.11+** and a terminal.
 
+
 ```bash
 git clone <this-repo>
 cd agentic-summer-school

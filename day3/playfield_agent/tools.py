@@ -109,7 +109,16 @@ def track_game(game_id: str, tool_context: ToolContext) -> dict:
     #      (assignment is what records the change — mutating a nested list
     #       without reassigning it may not be persisted)
     #   4. return {"status": "success", "tracked_games": watchlist}
-    raise NotImplementedError("Part 1, step 1.2")
+    if _games()[_games()["game_id"] == game_id].empty:
+        return {
+            "status": "error",
+            "message": f"Unknown game_id {game_id!r}. Call list_games to see valid ids.",
+        }
+    watchlist = list(tool_context.state.get("user:tracked_games", []))
+    if game_id not in watchlist:
+        watchlist.append(game_id)
+    tool_context.state["user:tracked_games"] = watchlist
+    return {"status": "success", "tracked_games": watchlist}
 
 
 def list_tracked_games(tool_context: ToolContext) -> dict:
@@ -123,7 +132,14 @@ def list_tracked_games(tool_context: ToolContext) -> dict:
     """
     # TODO(you): Part 1, step 1.2 — read "user:tracked_games" from state,
     # map ids to titles via _games(), return them.
-    raise NotImplementedError("Part 1, step 1.2")
+    watchlist = list(tool_context.state.get("user:tracked_games", []))
+    titles = _games().set_index("game_id")["title"].to_dict()
+    return {
+        "status": "success",
+        "tracked_games": [
+            {"game_id": gid, "title": titles.get(gid, "unknown")} for gid in watchlist
+        ],
+    }
 
 
 # --------------------------------------------------------------------------
@@ -144,7 +160,13 @@ def get_sales_data(game_id: str) -> dict:
     #   {"status": "error",
     #    "message": "The sales database is offline. Review statistics from "
     #               "get_game_details are still available."}
-    raise RuntimeError("connection to sales database timed out after 30s")
+    return {
+        "status": "error",
+        "message": (
+            "The sales database is offline. Review statistics from "
+            "get_game_details are still available."
+        ),
+    }
 
 
 # --------------------------------------------------------------------------

@@ -22,5 +22,10 @@ root_agent = LlmAgent(
     instruction="You are a helpful assistant for the Playfield game storefront.",
     # Part 2 (step 2.1): add tools.list_games and tools.get_game_details.
     # Part 3 (step 3.3): add tools.search_reviews and tools.analyze_review.
-    tools=[],
+    tools=[
+        tools.list_games,
+        tools.get_game_details,
+        tools.search_reviews,
+        tools.analyze_review,
+    ],
 )

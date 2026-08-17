@@ -89,14 +89,7 @@ def _review_vectors() -> np.ndarray:
 # --------------------------------------------------------------------------
 
 def list_games() -> dict:
-    """Lists every game in the Playfield catalog with its overall review rating.
-
-    Use this to answer questions about which games exist, or to find a game's
-    id when the user gives you a title.
-
-    Returns:
-        dict: status, and a list of games with game_id, title, genre,
-        price_eur, release_year, developer, and pct_recommended (0-100).
+    """Does somenthing"
     """
     stats = _reviews().groupby("game_id")["recommended"].mean().round(2) * 100
     games = _games().copy()
@@ -157,6 +150,26 @@ def search_reviews(query: str, top_k: int = 5) -> dict:
     #   3. top = np.argsort(scores)[::-1][:top_k]
     #   4. build the hits list from _reviews().iloc[top]  (columns above)
     #   5. return {"status": "success", "hits": [...]}
+    q = _embed(query, task_type="RETRIEVAL_QUERY")[0]
+    scores = _review_vectors() @ q
+    top = np.argsort(scores)[::-1][:top_k]
+
+    df = _reviews()
+    hits = []
+    for i in top:
+        row = df.iloc[i]
+        hits.append(
+            {
+                "review_id": row["review_id"],
+                "title": row["title"],
+                "recommended": bool(row["recommended"]),
+                "score" : float(scores[int(i)]),
+                "review_text": row["review_text"],
+            }
+        )
+
+    return {"status": "success", "hits": hits}
+
     raise NotImplementedError("Part 3, step 3.1 — port your Day-1 search here")
 
 
@@ -183,7 +196,32 @@ def analyze_review(review_id: str) -> dict:
     #   4. return {"status": "success", "review_id": review_id,
     #              "sentiment": r.sentiment, "issues": [i.value for i in r.issues],
     #              "is_sarcastic": r.is_sarcastic, "summary": r.summary}
-    raise NotImplementedError("Part 3, step 3.2 — port your Day-1 extraction here")
+    df = _reviews()
+    rows = df[df["review_id"] == review_id]
+    if rows.empty:
+        return {
+            "status": "error",
+            "message": f"Unknown review_id {review_id!r}. Call search_reviews to find valid ids.",
+        }
+
+    response = _client().models.generate_content(
+        model=GEN_MODEL,
+        contents=f"Analyze this player review:\n\n{rows.iloc[0]['review_text']}",
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ReviewAnalysis,
+        ),
+    )
+    r = response.parsed
+
+    return {
+        "status": "success",
+        "review_id": review_id,
+        "sentiment": r.sentiment,
+        "issues": [i.value for i in r.issues],
+        "is_sarcastic": r.is_sarcastic,
+        "summary": r.summary,
+    }
 
 
 # The schema from Day 1, Part 4 — ready to use in analyze_review.

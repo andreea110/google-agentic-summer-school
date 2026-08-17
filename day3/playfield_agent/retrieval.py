@@ -77,7 +77,21 @@ def search_docs(query: str, top_k: int = 3) -> dict:
     #   4. hits = [{"file": meta[i]["file"], "score": round(float(scores[i]), 3),
     #               "text": meta[i]["text"]} for i in top]
     #   5. return {"status": "success", "hits": hits}
-    raise NotImplementedError("Part 3, step 3.2")
+
+    vectors, meta = _index()
+    q = _embed(query, task_type="RETRIEVAL_QUERY")[0]
+    scores = vectors @ q
+    top = np.argsort(scores)[::-1][:top_k]
+
+    hits = [
+        {
+            "file": meta[int(i)]["file"],
+            "score": round(float(scores[int(i)]), 3),
+            "text": meta[int(i)]["text"],
+        }
+        for i in top
+    ]
+    return {"status": "success", "hits": hits}
 
 
 if __name__ == "__main__":
