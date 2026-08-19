@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>🔪 Agentic Mafia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #14121a; --card: #1e1b26; --card2: #262230; --line: #37323f;
+    --text: #eae6f2; --dim: #9c93ad; --red: #e5484d; --green: #46a758;
+    --amber: #f5a524; --blue: #6e9fff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, sans-serif; padding: 18px 22px;
+  }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  h1 small { color: var(--dim); font-weight: normal; font-size: 15px; margin-left: 10px; }
+  #tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 16px; margin-top: 14px; }
+  .table-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .thead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .thead b { font-size: 19px; }
+  .badge { padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .phase-lobby { background: #333; color: var(--dim); }
+  .phase-talk  { background: #143c1e; color: var(--green); }
+  .phase-act   { background: #3c2a10; color: var(--amber); }
+  .phase-over  { background: #3c1416; color: var(--red); }
+  .clock { color: var(--dim); font-variant-numeric: tabular-nums; font-size: 14px; }
+  .players { display: flex; flex-wrap: wrap; gap: 7px; margin: 8px 0; }
+  .chip {
+    position: relative; background: var(--card2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 4px 12px; font-size: 15px; cursor: default;
+  }
+  .chip.dead { opacity: .55; text-decoration: line-through; border-style: dashed; }
+  .chip .marks { font-size: 12px; margin-left: 5px; }
+  .chip .tip {
+    display: none; position: absolute; z-index: 9; left: 0; top: calc(100% + 6px);
+    width: 340px; background: #0d0b12; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--text);
+    text-decoration: none; white-space: pre-wrap; box-shadow: 0 8px 30px #0009;
+  }
+  .chip:hover .tip { display: block; }
+  .tip .r { color: var(--dim); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .panel { background: var(--card2); border-radius: 10px; padding: 8px 12px; max-height: 300px; overflow-y: auto; }
+  .panel h3 { margin: 2px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  .panel p { margin: 3px 0; font-size: 14px; }
+  .news p { color: var(--amber); }
+  .news p.r0 { color: var(--dim); }
+  .news p.cast { color: var(--blue); font-size: 13px; }
+  .news .why { text-decoration: underline dotted; cursor: help; }
+  .chat b { color: var(--blue); }
+  .chat .r { color: var(--dim); font-size: 12px; margin-right: 4px; }
+  .winner { margin: 8px 0; padding: 10px 14px; border-radius: 10px; font-size: 17px; font-weight: 700; text-align: center; }
+  .winner.town    { background: #143c1e; color: var(--green); }
+  .winner.killers { background: #3c1416; color: var(--red); }
+  .winner.nobody  { background: #333; color: var(--dim); }
+  button {
+    background: var(--red); color: white; border: 0; border-radius: 8px;
+    padding: 6px 16px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .toggle { background: var(--card2); border: 1px solid var(--line); color: var(--text); font-weight: 400; }
+  .toggle.danger { color: var(--red); border-color: #5a2a2c; margin-left: auto; }
+  .err { color: var(--red); }
+</style>
+</head>
+<body>
+<h1>🔪 Agentic Mafia <small id="subtitle">connecting…</small>
+  <button class="toggle" id="revealBtn" style="float:right" onclick="toggleReveal()">🙈 hide roles</button>
+</h1>
+<div id="tables"></div>
+<script>
+const KEY = new URLSearchParams(location.search).get('key') || '';
+// roles on by default for the key-holder (the server only serves them with a
+// valid key anyway); the 🎭 toggle is for hiding them, e.g. to play along
+let showRoles = true;
+
+function toggleReveal() {
+  showRoles = !showRoles;
+  document.getElementById('revealBtn').textContent = showRoles ? '🙈 hide roles' : '🎭 reveal roles';
+}
+
+const ROLE_ICON = { killer: '🔪', healer: '💉', civilian: '🧑‍🌾' };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function chip(p, phase) {
+  const icon = (p.role && (showRoles || !p.alive || phase === 'over')) ? ROLE_ICON[p.role] + ' ' : '';
+  const marks = p.alive && (phase === 'talk' || phase === 'act')
+    ? `<span class="marks">${p.spoke ? '💬' : ''}${p.acted ? '✅' : ''}</span>` : '';
+  const death = p.alive ? '' : ` <span class="marks">☠️</span>`;
+  let tip = p.messages.map(m => `<span class="r">r${m.round}:</span> ${esc(m.message)}`).join('\n');
+  if (showRoles && p.actions) {
+    tip += (tip ? '\n' : '') + p.actions.map(a =>
+      `<span class="r">r${a.round} →</span> vote:${esc(a.vote||'—')}` +
+      (a.kill ? ` kill:${esc(a.kill)}` : '') + (a.heal ? ` heal:${esc(a.heal)}` : '') +
+      (a.reasoning ? `\n<span class="r">💭 ${esc(a.reasoning)}</span>` : '')).join('\n');
+  }
+  if (!p.alive) tip = `☠️ ${p.death_cause} in round ${p.death_round}` + (tip ? '\n' + tip : '');
+  return `<span class="chip ${p.alive ? '' : 'dead'}">${icon}${esc(p.name)}${marks}${death}` +
+         (tip ? `<span class="tip">${tip}</span>` : '') + `</span>`;
+}
+
+async function post(id, path) {
+  const res = await fetch(`/api/table/${id}/${path}`, {method: 'POST'});
+  const body = await res.json();
+  if (body.error) {
+    const el = document.getElementById(`err-${id}`);
+    if (el) el.textContent = body.error;
+  } else {
+    tick();  // reflect the click immediately
+  }
+}
+const startTable = id => post(id, `start?key=${encodeURIComponent(KEY)}`);
+const advanceTable = id => post(id, `advance?key=${encodeURIComponent(KEY)}`);
+const setPace = (id, mode) => post(id, `pace?key=${encodeURIComponent(KEY)}&mode=${mode}`);
+
+// reset is two-click: first click arms it for 4s, second click fires
+let armedReset = null, armedTimer = null;
+function resetTable(id) {
+  if (armedReset === id) {
+    armedReset = null; clearTimeout(armedTimer);
+    post(id, `reset?key=${encodeURIComponent(KEY)}`);
+  } else {
+    armedReset = id;
+    clearTimeout(armedTimer);
+    armedTimer = setTimeout(() => { armedReset = null; tick(); }, 4000);
+    tick();
+  }
+}
+
+function render(state) {
+  // preserve panel scroll positions across the rebuild: stick to the newest
+  // content only if the viewer was already at the bottom — never yank the
+  // scrollbar away from someone reading back
+  const scrolls = {};
+  document.querySelectorAll('.panel[id]').forEach(el => {
+    scrolls[el.id] = {
+      top: el.scrollTop,
+      atBottom: el.scrollHeight - el.clientHeight - el.scrollTop < 30,
+    };
+  });
+  document.getElementById('subtitle').textContent =
+    `${state.rules.killers} killer(s) + ${state.rules.healers} healer(s) per table of ${state.rules.table_size}` +
+    (state.reveal ? '' : ' · (no admin key — roles hidden)');
+  document.getElementById('tables').innerHTML = state.tables.map(t => {
+    const phaseBadge = `<span class="badge phase-${t.phase}">${t.phase.toUpperCase()}</span>`;
+    const clock = t.deadline_in !== null ? `<span class="clock">⏱ ${t.deadline_in}s</span>` : '';
+    let controls;
+    if (t.phase === 'lobby') {
+      controls = `<button onclick="startTable(${t.id})" ${t.players.length >= t.min_players ? '' : 'disabled'}>▶ start</button>
+        <span class="clock">${t.players.length}/${t.seats} joined (min ${t.min_players})</span>`;
+    } else if (t.phase === 'over') {
+      controls = `<span class="clock">round ${t.round}</span>`;
+    } else {
+      const step = t.pending
+        ? `<button onclick="advanceTable(${t.id})">⏭ ${t.pending === 'act' ? 'reveal the chat' : 'dawn'}</button>`
+        : `<span class="clock">⏳ agents ${t.phase === 'talk' ? 'talking' : 'acting'}…</span>`;
+      const pace = `<button class="toggle" onclick="setPace(${t.id}, '${t.pace === 'manual' ? 'auto' : 'manual'}')"
+        title="toggle pacing">${t.pace === 'manual' ? '🎬 host-paced' : '⏩ auto'}</button>`;
+      controls = `<span class="clock">round ${t.round}</span> ${step} ${pace}`;
+    }
+    const reset = `<button class="toggle danger" onclick="resetTable(${t.id})">${
+      armedReset === t.id ? '⚠ sure?' : '🔄 reset'}</button>`;
+    const start = controls + ' ' + reset + `<span class="err" id="err-${t.id}"></span>`;
+    const winner = t.winner
+      ? `<div class="winner ${t.winner}">${
+          {town: '🎉 THE TOWN WINS', killers: '🔪 THE KILLERS WIN', nobody: '🤷 NOBODY WINS'}[t.winner]
+        }</div>` : '';
+    const news = t.news.flatMap(n => {
+      const out = n.lines.map(l =>
+        `<p class="${n.round === 0 ? 'r0' : ''}"><span class="r">r${n.round}</span> ${esc(l)}</p>`);
+      if (n.votes && n.votes.length) {
+        const cast = n.votes.map(v =>
+          `<span ${v.reasoning ? `class="why" title="💭 ${esc(v.reasoning)}"` : ''}>` +
+          `${esc(v.from)}→${v.vote ? esc(v.vote) : '∅'}</span>`).join(' · ');
+        out.push(`<p class="cast"><span class="r">r${n.round}</span> 🗳 ${cast}</p>`);
+      }
+      return out;
+    }).join('');
+    const chat = t.chat.map(c =>
+      `<p><span class="r">r${c.round}</span> <b>${esc(c.from)}</b>: ${esc(c.message)}</p>`).join('');
+    return `<div class="table-card">
+      <div class="thead"><b>Table ${t.id}</b> ${phaseBadge} ${clock} ${start}</div>
+      ${winner}
+      <div class="players">${t.players.map(p => chip(p, t.phase)).join('')}</div>
+      <div class="cols">
+        <div class="panel news" id="news-${t.id}"><h3>📰 town news</h3>${news || '<p class="r0">quiet so far…</p>'}</div>
+        <div class="panel chat" id="chat-${t.id}"><h3>💬 town chat</h3>${chat || '<p class="r0">silence…</p>'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.panel[id]').forEach(el => {
+    const s = scrolls[el.id];
+    if (!s || s.atBottom) el.scrollTop = el.scrollHeight;  // new panel or was at bottom
+    else el.scrollTop = s.top;                             // reading back: stay put
+  });
+}
+
+async function tick() {
+  // never clobber an active text selection — re-rendering would invalidate
+  // it mid-copy; the next tick after the selection is released catches up
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed) return;
+  try {
+    const res = await fetch(`/api/state?key=${encodeURIComponent(KEY)}`);
+    render(await res.json());
+  } catch (e) {
+    document.getElementById('subtitle').textContent = 'server unreachable — retrying…';
+  }
+}
+tick();
+setInterval(tick, 4000);
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ multi-agent AI system you can trust.*
 | 2 | Your first agent | A data-analyst agent that calls the tools *you* wrote on Day 1 |
 | 3 | Memory, state & real tools | The analyst agent with sessions, RAG retrieval, and guardrails |
 | 4 | Multi-agent systems | An orchestrator + specialists that research and write a report |
-| 5 | Trust, evaluation & Demo Day | Your system, evaluated, traced — and demoed to the room |
+| 5 | Trust, evaluation & the tournament | Your agent, evaluated, traced — then playing Agentic Mafia against the room |
 
 One storyline all week: you are the data team of **Playfield**, a small indie game
 storefront with 20 games and 300 player reviews (`data/`). On Day 1 you analyze the

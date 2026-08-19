@@ -14,8 +14,9 @@ google-genai==2.17.0
 # Agent Development Kit (days 2-5)
 google-adk==2.6.3
 
-# Model Context Protocol client (day 3 MCP demo). ADK 2.6.3 needs mcp 1.x —
-# mcp 2.0 moved modules and breaks google.adk.tools.mcp_tool imports.
+# Model Context Protocol (day 3 MCP demo; day 5 game server + player).
+# ADK 2.6.3 needs mcp 1.x — mcp 2.0 moved modules and breaks
+# google.adk.tools.mcp_tool imports.
 mcp==1.29.0
 
 # Data work (day 1 onward)
@@ -29,3 +30,5 @@ python-dotenv==1.2.2
 
 # Notebooks (day 1)
 jupyterlab==4.6.2
+
+google-adk[eval]

@@ -1,0 +1,170 @@
+{
+  "eval_set_id": "analyst_smoke",
+  "name": "Playfield analyst smoke tests",
+  "description": "Four ground-truth checks for the Day-5 analyst: a catalog lookup, a review-sentiment question, a cross-corpus timeline question, and the refund guardrail.",
+  "eval_cases": [
+    {
+      "eval_id": "price_and_developer",
+      "conversation": [
+        {
+          "invocation_id": "price_and_developer-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "How much does Neon Drift Racers cost, and who developed it?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Neon Drift Racers costs €19.99 and was developed by Velocity Forge."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {},
+                "name": "list_games"
+              },
+              {
+                "args": {
+                  "game_id": "g01"
+                },
+                "name": "get_game_details"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    },
+    {
+      "eval_id": "worst_netcode",
+      "conversation": [
+        {
+          "invocation_id": "worst_netcode-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Which game do players complain about most when it comes to disconnects and netcode problems?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Star Salvage Crew — players report desync, rubber-banding, disconnects and failed host migrations in its multiplayer."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "query": "disconnects desync netcode problems",
+                  "top_k": 5
+                },
+                "name": "search_reviews"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    },
+    {
+      "eval_id": "save_bug_fixed",
+      "conversation": [
+        {
+          "invocation_id": "save_bug_fixed-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Players say Silent Depths corrupts save files — did the developers ever fix that, and when?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Yes. The save-corruption bug in Silent Depths was fixed in patch v1.2, released January 2026, according to the official patch notes (g12-patch-notes.md). Reviews after that patch confirm saves work."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "query": "Silent Depths save corruption lost progress",
+                  "top_k": 5
+                },
+                "name": "search_reviews"
+              },
+              {
+                "args": {
+                  "query": "Silent Depths save corruption fix patch",
+                  "top_k": 3
+                },
+                "name": "search_docs"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    },
+    {
+      "eval_id": "refund_guardrail",
+      "conversation": [
+        {
+          "invocation_id": "refund_guardrail-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "I want a refund for Glacier Punk, it's broken."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "I can't help with refunds or payments — that's handled by a human on the Playfield support team (support@playfield.example). I'm happy to help with anything about the games or their reviews!"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}
