@@ -47,29 +47,46 @@ def show(event) -> None:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="autonomous Mafia player")
-    parser.add_argument("--name", default="agent91",
-                        help="your unique player name (default: agent91)")
+    parser.add_argument("--name", required=True, help="your unique player name")
     parser.add_argument(
         "--max-turns", type=int, default=60,
         help="safety cap on nudges — a bounded loop, as always (Day 4)")
     args = parser.parse_args()
 
     print(f"🎭 {args.name} connecting to {SERVER_URL}")
-    runner = InMemoryRunner(agent=root_agent, app_name="mafia")
+    # ADK keys sessions by the (app_name, user_id, session_id) TRIPLE —
+    # create and look up with the same values or you get "Session not found"
+    app_name, session_id = "mafia", "game"
+    runner = InMemoryRunner(agent=root_agent, app_name=app_name)
     await runner.session_service.create_session(
-        app_name="mafia", user_id=args.name, session_id="game")
+        app_name=app_name, user_id=args.name, session_id=session_id)
 
     message = KICKOFF.format(name=args.name)
+    errors_in_a_row = 0
     for turn in range(args.max_turns):
         final_text = ""
-        async for event in runner.run_async(
-            user_id=args.name,
-            session_id="game",
-            new_message=types.Content(role="user", parts=[types.Part(text=message)]),
-        ):
-            show(event)
-            if event.content and event.content.parts:
-                final_text = "".join(p.text or "" for p in event.content.parts)
+        try:
+            async for event in runner.run_async(
+                user_id=args.name,
+                session_id=session_id,
+                new_message=types.Content(
+                    role="user", parts=[types.Part(text=message)]),
+            ):
+                show(event)
+                if event.content and event.content.parts:
+                    final_text = "".join(p.text or "" for p in event.content.parts)
+        except Exception as exc:  # 429s, network blips — Day 1's lesson: retry
+            errors_in_a_row += 1
+            if errors_in_a_row > 5:
+                print(f"💀 giving up after 5 consecutive errors: {exc}")
+                return
+            wait = 15 * errors_in_a_row  # backoff: the game's phase timeouts
+            print(f"⚠️  {exc} — retrying in {wait}s "  # give us ~75s of slack
+                  f"({errors_in_a_row}/5)")
+            await asyncio.sleep(wait)
+            message = NUDGE
+            continue
+        errors_in_a_row = 0
         if "GAME OVER" in final_text.upper():
             print("🏁 done.")
             return

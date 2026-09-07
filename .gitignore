@@ -7,14 +7,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# generated caches (students create these by running the notebooks)
-day1/cache/
-
-# slide build output
-slides/build/
-
-# instructor-only material (runbooks, teaching scripts, ground truth, release plan)
-# — remove this line after the course if you want to open-source the kit
 instructor/
 
 # adk web local session databases
