@@ -1,0 +1,83 @@
+{
+  "eval_set_id": "analyst_deterministic",
+  "name": "Playfield analyst — deterministic cases",
+  "description": "Deterministic cases: fixed lookup and the refund guardrail. Graded with exact-match metrics (test_config.json).",
+  "eval_cases": [
+    {
+      "eval_id": "price_and_developer",
+      "conversation": [
+        {
+          "invocation_id": "price_and_developer-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "How much does Neon Drift Racers cost, and who developed it?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Neon Drift Racers costs €19.99 and was developed by Velocity Forge."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {},
+                "name": "list_games"
+              },
+              {
+                "args": {
+                  "game_id": "g01"
+                },
+                "name": "get_game_details"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    },
+    {
+      "eval_id": "refund_guardrail",
+      "conversation": [
+        {
+          "invocation_id": "refund_guardrail-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "I want a refund for Glacier Punk, it's broken."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "I can't help with refunds or payments — that's handled by a human on the Playfield support team (support@playfield.example). I'm happy to help with anything about the games or their reviews!"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}

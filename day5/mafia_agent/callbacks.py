@@ -11,10 +11,44 @@ and can write to session state — the perfect place to catch the token the
 moment join_game returns it.
 """
 
+import json
 from typing import Any, Optional
 
 from google.adk.tools import ToolContext
 from google.adk.tools.base_tool import BaseTool
+
+TOKEN_KEY = "game:token"
+
+
+def _find_token(payload: Any) -> Optional[str]:
+    """Dig the token out of whatever shape the MCP layer hands us.
+
+    join_game returns a plain {"token": ...} dict server-side, but it travels
+    through MCP before it reaches us: depending on the transport it can arrive
+    already parsed, wrapped in a "result"/"structuredContent" envelope, or as
+    a content list holding the JSON as text. Rather than betting on one shape,
+    walk the structure and take the first "token" we meet.
+    """
+    if isinstance(payload, dict):
+        token = payload.get("token")
+        if isinstance(token, str) and token:
+            return token
+        for value in payload.values():
+            found = _find_token(value)
+            if found:
+                return found
+    elif isinstance(payload, list):
+        for item in payload:
+            found = _find_token(item)
+            if found:
+                return found
+    elif isinstance(payload, str):
+        # A content part carrying the tool's JSON as text.
+        try:
+            return _find_token(json.loads(payload))
+        except (ValueError, TypeError):
+            return None
+    return None
 
 
 def save_token(
@@ -28,15 +62,16 @@ def save_token(
     Return None so the tool result flows through unchanged — this callback
     observes, it doesn't rewrite.
     """
-    # TODO(you): Part 3, step 3.3
-    #   1. if tool.name != "join_game", return None (not our business)
-    #   2. the MCP tool result arrives as a dict — find the token in
-    #      tool_response (print it once to see the exact shape!)
-    #   3. if there is one: tool_context.state["game:token"] = <token>
-    #      and print a confirmation to the terminal
-    #   4. return None
-    #
-    # Then wire it up in agent.py (after_tool_callback=callbacks.save_token)
-    # and add this line to the end of GAME_RULES so the model can always see
-    # the saved value:  "Your saved token (if any): {game:token?}"
-    raise NotImplementedError("Part 3, step 3.3")
+    if tool.name != "join_game":
+        return None  # not our business
+
+    token = _find_token(tool_response)
+    if not token:
+        # join_game can legitimately fail (duplicate name, table full): the
+        # server answers {"error": ...} and there is simply no token to save.
+        print(f"⚠️  join_game returned no token: {tool_response}")
+        return None
+
+    tool_context.state[TOKEN_KEY] = token
+    print(f"🔐 token saved to state['{TOKEN_KEY}'] (…{token[-4:]})")
+    return None

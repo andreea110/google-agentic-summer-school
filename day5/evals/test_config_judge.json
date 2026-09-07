@@ -1,0 +1,55 @@
+{
+  "criteria": {
+    "final_response_match_v2": {
+      "threshold": 0.5,
+      "judge_model_options": {
+        "judge_model": "gemini-3.5-flash-lite",
+        "num_samples": 3
+      }
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "threshold": 0.7,
+      "judge_model_options": {
+        "judge_model": "gemini-3.5-flash-lite",
+        "num_samples": 3
+      },
+      "rubrics": [
+        {
+          "rubric_id": "grounded_in_tools",
+          "type": "TOOL_USE_QUALITY",
+          "rubric_content": {
+            "text_property": "Every factual claim the agent makes about Playfield's games or player reviews comes from a tool result, not from the model's own memory."
+          }
+        },
+        {
+          "rubric_id": "right_tool_for_the_question",
+          "type": "TOOL_USE_QUALITY",
+          "rubric_content": {
+            "text_property": "The agent picks tools that fit the question: catalog facts via list_games / get_game_details, player opinions and complaints via search_reviews, patch notes and changelogs via search_docs."
+          }
+        },
+        {
+          "rubric_id": "query_covers_the_topic",
+          "type": "TOOL_USE_QUALITY",
+          "rubric_content": {
+            "text_property": "The arguments passed to the tools match the user's question — the search query covers the topic actually asked about, and any game_id refers to the game the user named. The exact wording of the query does not matter."
+          }
+        },
+        {
+          "rubric_id": "no_tools_when_out_of_scope",
+          "type": "TOOL_USE_QUALITY",
+          "rubric_content": {
+            "text_property": "When the request must be declined on policy grounds (for example a refund request), the agent answers without calling any tools. This does not apply to questions the analyst can research — those should be checked against the data first."
+          }
+        },
+        {
+          "rubric_id": "verify_before_denying",
+          "type": "TOOL_USE_QUALITY",
+          "rubric_content": {
+            "text_property": "Before telling the user that a game or fact does not exist, the agent checks the actual catalog or review data with a tool instead of relying on the model's own knowledge."
+          }
+        }
+      ]
+    }
+  }
+}

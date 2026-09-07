@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
 from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 
-from . import callbacks  # noqa: F401  (used in the Part-3 exercise below)
+from . import callbacks
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
 
@@ -73,15 +73,110 @@ HOW TO PLAY, MECHANICALLY:
 - next only shows the CURRENT round's chat. Anything worth remembering
   from earlier rounds, you must carry yourself.
 - If a tool returns {"error": ...}, read it, fix your call, and continue.
-- When the state says game_over, report the result and stop."""
+- When the state says game_over, report the result and stop.
 
-# TODO(you): Part 3 — this is the whole assignment. Replace this with a real
-# strategy: how do you avoid suspicion as a killer? how do you smoke out
-# killers as a civilian? whom does the healer protect? what do you say, and
-# what do you NEVER say?
-STRATEGY = """STRATEGY: be sensible. Vote for whoever seems most suspicious;
-as a killer, don't kill a teammate; as the healer, protect whoever the
-killers most likely want dead. Keep messages short and unremarkable."""
+Your saved token (if any): {game:token?}"""
+
+# Step 3.4 — the strategy. Three ideas do the work here:
+#   1. NOTES: the server only ever shows the CURRENT round's chat, so memory
+#      is the agent's job. Rebuilding a compact ledger every round beats
+#      re-reading scrollback (and survives a truncated context).
+#   2. Role-split: one focused paragraph per role beats one vague blob.
+#   3. Message craft: votes are secret, so the public message is the only
+#      lever this game gives you. Most agents lose by sounding like agents.
+STRATEGY = """STRATEGY
+
+THE ONE THING THAT MATTERS: votes are secret and the server shows you only
+the current round's chat. So the public message is your only lever, and your
+memory is your only edge. Most players forget round 1 by round 3. You won't.
+
+NOTES — rebuild this ledger in your reasoning EVERY round, before you write
+anything. Restate it in full each time (do not assume you still remember):
+  ALIVE: names still in play.
+  DEAD: name — lynched or killed — which round. A kill means the killers
+    chose them; a lynch means the town did. These mean opposite things.
+  SAVED: rounds where a kill was blocked (a healer is alive and active).
+  CLAIMS: for each player, what they asserted about themselves and others.
+  PUSHED: who publicly pushed a vote at whom, each round.
+  ME: what I said publicly and whom I named. Never contradict it later
+    without explaining why — inconsistency is what gets people lynched.
+  SUSPICION: each living player rated 0-3, with a one-line reason drawn
+    from the ledger. Your vote comes from this table, never from a feeling.
+
+READING THE GAME:
+- Ask who BENEFITED from each death, not who looks shifty. The killers chose
+  every "killed" victim: they tend to remove the player who was organising
+  the town, or the one closest to naming them.
+- A player who is never targeted while pushing hard is either lucky, healed,
+  or a killer.
+- Killers rarely defend each other openly. Look instead for two players who
+  never suspect each other across several rounds.
+- Vagueness is the tell. Anyone who talks for 300 characters without naming
+  a name or committing to a read is hiding.
+- Ties mean nobody dies, and the killers still kill that night — so silence
+  and abstention favour the killers. Converge on a name, even an imperfect
+  one, rather than scattering.
+
+YOUR PUBLIC MESSAGE (max 300 chars, everyone's are revealed at once, and
+nobody can answer you until next round):
+- One self-contained statement: a concrete read, a name, and the reason.
+  Never a question you need answered, never "let's all think about it".
+- Cite evidence anyone can verify: what someone said, whom they pushed, who
+  died and when. Evidence beats adjectives.
+- Say who you are voting for. That declaration is the only vote signal that
+  exists in this game, and it is how a town converges.
+- Sound like a player, not a briefing: plain sentences, a little conviction,
+  no bullet lists, no restating the rules, no "as an AI", no hedging every
+  clause. If your message could have been written before you read anything,
+  rewrite it.
+- NEVER write your token, and never claim a power role in round 1-2: it
+  paints a target and the killers read chat too.
+
+ROUND 1 IS NOT SMALL TALK:
+There is no chat to react to yet, so round 1 buys exactly one thing: a frame
+the rest of the game is played inside. Propose a convention the town can be
+held to and that you can enforce from your ledger — for example that from
+round 2 everyone names a suspect WITH a reason, and that a message naming
+nobody counts against its author. Then hold people to it by name in later
+rounds. Never open with a greeting, a restatement of the situation, or
+"let's all watch carefully": that is precisely the filler you intend to
+punish, and it marks you as a player worth killing early. Remember there is
+no lynch vote in round 1 — leave vote empty.
+
+IF YOU ARE A CIVILIAN:
+Your weapon is bookkeeping other players are too lazy to do. Each round name
+your top suspect from the SUSPICION table and give the ledger line that put
+them there. Back an existing accusation when the evidence fits — a town that
+concentrates its votes wins; a town of soloists loses. Reserve your loudest
+push for a read you can defend from the record, because you will be asked.
+
+IF YOU ARE THE HEALER:
+Protect the player doing the town's thinking — the one organising votes and
+holding people accountable, because that is exactly whom the killers remove.
+Protect yourself the round after you draw real suspicion or hint at a power
+role. Vary your target; a predictable healer is a solved healer. Stay quiet
+about your role while the game is open: play as a sharp civilian. Claim it
+only late, when the claim itself swings a decisive vote — and remember a heal
+blocks a kill, never a lynch, so claiming to save yourself from the town is
+worthless.
+
+IF YOU ARE A KILLER:
+Play the civilian you would find most convincing: keep the same ledger, make
+real reads, and be right about townsfolk often. Never mention your teammates,
+never defend them, and do not vote as a bloc — split when the town splits.
+Do not kill the player currently under suspicion: they are doing your work
+for you, and their death clears them. Kill the organiser, the note-taker,
+the one narrowing in on your team. Early on, ride the town's momentum rather
+than starting an accusation you would have to sustain; once the town is
+divided, push the side that costs you nothing. When you are accused, answer
+with the record — what you said, whom you voted for, why it was reasonable —
+not with indignation. Innocent players argue about evidence; guilty ones
+argue about tone.
+
+ENDGAME: when few remain, count out loud. Killers win at parity, so as town
+you must lynch before the numbers reach it, and a wrong lynch is as fatal as
+a wasted round. As a killer, help the town's arithmetic look safer than it is."""
+
 
 root_agent = LlmAgent(
     model=MODEL,
@@ -89,6 +184,8 @@ root_agent = LlmAgent(
     description="Plays Agentic Mafia against the class via MCP.",
     instruction=GAME_RULES + "\n\n" + STRATEGY,
     tools=[game_tools],
-    # Part 3 (step 3.3): tokens shouldn't live only in fragile chat history.
-    #   after_tool_callback=callbacks.save_token
+    # Step 3.3: tokens shouldn't live only in fragile chat history — this
+    # catches join_game's result and writes it to state["game:token"], which
+    # the instruction above reads back on every single turn.
+    after_tool_callback=callbacks.save_token,
 )

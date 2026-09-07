@@ -1,0 +1,132 @@
+{
+  "eval_set_id": "analyst_fuzzy",
+  "name": "Playfield analyst — fuzzy cases",
+  "description": "Open-ended cases where query wording and answer phrasing vary run to run, plus the honest-failure guard. Graded with LLM judges (test_config_judge.json).",
+  "eval_cases": [
+    {
+      "eval_id": "worst_netcode",
+      "conversation": [
+        {
+          "invocation_id": "worst_netcode-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Which game do players complain about most when it comes to disconnects and netcode problems?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Star Salvage Crew — players report desync, rubber-banding, disconnects and failed host migrations in its multiplayer."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "query": "disconnects desync netcode problems",
+                  "top_k": 5
+                },
+                "name": "search_reviews"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    },
+    {
+      "eval_id": "save_bug_fixed",
+      "conversation": [
+        {
+          "invocation_id": "save_bug_fixed-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Players say Silent Depths corrupts save files — did the developers ever fix that, and when?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Yes. The save-corruption bug in Silent Depths was fixed in patch v1.2, released January 2026, according to the official patch notes (g12-patch-notes.md). Reviews after that patch confirm saves work."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "query": "Silent Depths save corruption lost progress",
+                  "top_k": 5
+                },
+                "name": "search_reviews"
+              },
+              {
+                "args": {
+                  "query": "Silent Depths save corruption fix patch",
+                  "top_k": 3
+                },
+                "name": "search_docs"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    },
+    {
+      "eval_id": "unknown_game_honest_failure",
+      "conversation": [
+        {
+          "invocation_id": "unknown_game_honest_failure-inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "What do players think about Dungeon Blitz Arena?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dungeon Blitz Arena is not in the Playfield catalog — checking the 20 games on file turns up no such title, so there are no player reviews to report. If you meant a different game, name it and I'll look it up."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {},
+                "name": "list_games"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}
